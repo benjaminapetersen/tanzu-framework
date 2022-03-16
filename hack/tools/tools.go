@@ -14,4 +14,5 @@ import (
 	_ "github.com/onsi/ginkgo/ginkgo"
 	_ "github.com/shuLhan/go-bindata"
 	_ "golang.org/x/tools/cmd/goimports"
+	_ "sigs.k8s.io/controller-tools"
 )
