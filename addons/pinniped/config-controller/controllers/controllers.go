@@ -75,8 +75,8 @@ func (c *PinnipedController) SetupWithManager(manager ctrl.Manager) error {
 	return nil
 }
 
-// +kubebuilder:rbac:resources=configmaps,verbs=list;watch;get;patch;update;delete
-// +kubebuilder:rbac:resources=secrets,verbs=list;watch;get
+// +kubebuilder:rbac:resources=configmaps,verbs=list;watch;get
+// +kubebuilder:rbac:resources=secrets,verbs=list;watch;get;patch;update;delete
 // +kubebuilder:rbac:resources=clusters,verbs=list;watch;get
 
 func (c *PinnipedController) Reconcile(ctx context.Context, req ctrl.Request) (reconcile.Result, error) {

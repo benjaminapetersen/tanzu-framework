@@ -41,7 +41,9 @@ func withNamespacedName(namespacedName types.NamespacedName) builder.Predicates 
 }
 
 func (c *PinnipedController) addonSecretToCluster(o client.Object) []ctrl.Request {
+	// eh? these are mixed up aren't they???? namespace-name, name-namespace
 	log := c.Log.WithValues(constants.NamespaceLogKey, o.GetName(), constants.NameLogKey, o.GetNamespace())
+	// log := c.Log.WithValues(constants.NamespaceLogKey, cluster.Namespace, constants.NameLogKey, cluster.Name)
 
 	log.V(1).Info("mapping addon secret to cluster")
 	clusterName, labelExists := o.GetLabels()[constants.TKGClusterNameLabel]
@@ -62,7 +64,10 @@ func (c *PinnipedController) withAddonLabel(addonLabel string) predicate.Funcs {
 	// Predicate func will get called for all events (create, update, delete, generic)
 	return predicate.NewPredicateFuncs(func(o client.Object) bool {
 		var secret *corev1.Secret
+		// eh? these are mixed up aren't they???? namespace-name, name-namespace
 		log := c.Log.WithValues(constants.NamespaceLogKey, o.GetName(), constants.NameLogKey, o.GetNamespace())
+		// log := c.Log.WithValues(constants.NamespaceLogKey, cluster.Namespace, constants.NameLogKey, cluster.Name)
+		
 		switch obj := o.(type) {
 		case *corev1.Secret:
 			secret = obj

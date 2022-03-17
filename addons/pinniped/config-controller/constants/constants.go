@@ -11,10 +11,13 @@ import (
 )
 
 const (
-	//TODO: I kinda don't like that we're copying a lot of these from addons/pkg/constants
+	// TODO: I kinda don't like that we're copying a lot of these from addons/pkg/constants
 
 	// TKGDataValueFileName is the default name of YTT data value field
 	TKGDataValueFieldName = "values.yaml"
+
+	// ClusterNameLogKey is the log key for "cluster-name"
+	ClusterNameLogKey = "cluster-name"
 
 	// NamespaceLogKey is the log key for "namespace"
 	NamespaceLogKey = "namespace"
