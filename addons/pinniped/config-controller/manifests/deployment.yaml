@@ -42,3 +42,10 @@ spec:
       containers:
       - image: #@ data.values.image
         name: pinniped-config-controller-manager
+        command:
+        - pinniped-config-controller-manager
+        args:
+        - "-v=1"
+        env:
+        - name: NOTHING_TO_SEE_HERE
+          value: folks

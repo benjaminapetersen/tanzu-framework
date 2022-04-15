@@ -30,7 +30,7 @@ type PinnipedV1Controller struct {
 func NewV1Controller(c client.Client) *PinnipedV1Controller {
 	return &PinnipedV1Controller{
 		client: c,
-		Log:    ctrl.Log.WithName("pinniped cascade v1 controller"),
+		Log:    ctrl.Log.WithName(CascadeControllerV1alpha1Name),
 	}
 }
 
@@ -38,7 +38,11 @@ func (c *PinnipedV1Controller) SetupWithManager(manager ctrl.Manager) error {
 	// Addons secret deleted: recreate it User only manages addons secret on mgmt cluster
 	err := ctrl.
 		NewControllerManagedBy(manager).
+		// NOTE(BEN): For() just means "watches", really
+		// For() should signal what we specifically resolve with this controller
 		For(&clusterapiv1beta1.Cluster{}).
+		// Watches() should signal the dependencies we watch in order to resolve the
+		// resource in our For()
 		Watches(
 			&source.Kind{Type: &corev1.ConfigMap{}},
 			handler.EnqueueRequestsFromMapFunc(configMapHandler),
@@ -54,13 +58,14 @@ func (c *PinnipedV1Controller) SetupWithManager(manager ctrl.Manager) error {
 	return nil
 }
 
-// +kubebuilder:rbac:groups="",resources=secrets,verbs=list;watch;get;patch;create
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=list;watch;get;patch;create;delete
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=list;watch;get
 // +kubebuilder:rbac:groups="cluster.x-k8s.io",resources=clusters,verbs=list;watch;get
 
 func (c *PinnipedV1Controller) Reconcile(ctx context.Context, req ctrl.Request) (reconcile.Result, error) {
 	log := c.Log.WithName("reconcile").WithValues("request object", req)
 	log.Info("starting reconciliation")
+
 	pinnipedInfoCM, err := getPinnipedInfoConfigMap(ctx, c.client, log)
 	if err != nil {
 		log.Error(err, "error getting pinniped-info configmap")
@@ -82,9 +87,13 @@ func (c *PinnipedV1Controller) Reconcile(ctx context.Context, req ctrl.Request) 
 			}
 
 			// For v1alpha1 we will delete secret if CM is not found
-			// if pinnipedInfoCM.Data == nil {
-			//	// TODO: Reconcile Delete
-			// }
+			if pinnipedInfoCM.Data == nil {
+				if err := c.deleteAddonSecret(ctx, &clusters.Items[i], log); err != nil {
+					return reconcile.Result{}, err
+				}
+				// if the cm is deleted, no further reconciliation should take place
+				continue
+			}
 
 			if err := c.reconcileAddonSecret(ctx, &clusters.Items[i], pinnipedInfoCM, log); err != nil {
 				log.Error(err, "error reconciling addon secret")
@@ -98,8 +107,19 @@ func (c *PinnipedV1Controller) Reconcile(ctx context.Context, req ctrl.Request) 
 	return reconcile.Result{}, nil
 }
 
+func (c *PinnipedV1Controller) deleteAddonSecret(ctx context.Context, cluster *clusterapiv1beta1.Cluster, log logr.Logger) error {
+	secretName := fmt.Sprintf("%s-pinniped-addon", cluster.Name)
+	log.Info(fmt.Sprintf("delete secret %s for cluster %s", secretName, cluster.Name))
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: cluster.Namespace,
+			Name:      secretName,
+		},
+	}
+	return c.client.Delete(ctx, secret)
+}
+
 func (c *PinnipedV1Controller) reconcileAddonSecret(ctx context.Context, cluster *clusterapiv1beta1.Cluster, pinnipedInfoCM *corev1.ConfigMap, log logr.Logger) error {
-	log = log.WithValues(clusterNamespaceLogKey, cluster.Namespace, clusterNameLogKey, cluster.Name)
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: cluster.Namespace,
@@ -114,6 +134,12 @@ func (c *PinnipedV1Controller) reconcileAddonSecret(ctx context.Context, cluster
 		},
 	}
 	secret.Type = tkgAddonType
+
+	log = log.
+		WithValues(clusterNamespaceLogKey, cluster.Namespace).
+		WithValues(clusterNameLogKey, cluster.Name).
+		WithValues(secretNameLogKey, secret.Name).
+		WithValues(secretNamespaceLogKey, secret.Namespace)
 
 	// check if cluster is scheduled for deletion, if so, delete addon secret on mgmt cluster
 	if !cluster.GetDeletionTimestamp().IsZero() {

@@ -28,17 +28,21 @@ type PinnipedV3Controller struct {
 func NewV3Controller(c client.Client) *PinnipedV3Controller {
 	return &PinnipedV3Controller{
 		client: c,
-		Log:    ctrl.Log.WithName("pinniped cascade v3 controller"),
+		Log:    ctrl.Log.WithName(CascadeControllerV1alpha3Name),
 	}
 }
 
 func (c *PinnipedV3Controller) SetupWithManager(manager ctrl.Manager) error {
 	err := ctrl.
 		NewControllerManagedBy(manager).
+		// NOTE(BEN): For() just means "watches", really
+		// For() should signal what we specifically resolve with this controller
 		For(
 			&corev1.Secret{},
 			c.withPackageName(pinnipedPackageLabel),
 		).
+		// Watches() should signal the dependencies we watch in order to resolve the
+		// resource in our For()
 		Watches(
 			&source.Kind{Type: &corev1.ConfigMap{}},
 			handler.EnqueueRequestsFromMapFunc(configMapHandler),
@@ -59,6 +63,11 @@ func (c *PinnipedV3Controller) SetupWithManager(manager ctrl.Manager) error {
 func (c *PinnipedV3Controller) Reconcile(ctx context.Context, req ctrl.Request) (reconcile.Result, error) {
 	log := c.Log.WithName("reconcile").WithValues("request object", req)
 	log.Info("starting reconciliation")
+
+	// TODO: remove! ben just watching what gets logged, don't DO THINGS!!!!
+	log.Info("🐾🐾 early abort v1alpha3 controller 🐽 ...........") // TODO: remove! ben just watching what gets logged, don't DO THINGS!!!!
+	return reconcile.Result{}, nil                               // TODO: remove! ben just watching what gets logged, don't DO THINGS!!!!
+
 	pinnipedInfoCM, err := getPinnipedInfoConfigMap(ctx, c.client, log)
 	if err != nil {
 		log.Error(err, "error getting pinniped-info configmap")

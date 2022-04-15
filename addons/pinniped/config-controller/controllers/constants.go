@@ -10,7 +10,14 @@ import (
 )
 
 const (
-	//TODO: I kinda don't like that we're copying a lot of these from addons/pkg/constants
+	// TODO: these are long names, can we shorten them?
+	// what is easiest & most meaningful to appear in logs?
+	CascadeControllerV1alpha1Name = "🐙 v1alpha1 pinniped cascade controller"
+	CascadeControllerV1alpha3Name = "🐠 v1alpha3 pinniped cascade controller"
+)
+
+const (
+	// TODO: I kinda don't like that we're copying a lot of these from addons/pkg/constants
 
 	// tkgDataValueFileName is the default name of YTT data value field
 	tkgDataValueFieldName = "values.yaml"
